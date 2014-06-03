@@ -50,14 +50,14 @@ inline void free_offsets(off_t *offsets)
     free(offsets);
 }
 
-void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t size, int blocksize, char *buf, int sleep, int interval)
+void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, int blocksize, char *buf, int sleep, int interval)
 {
     struct timeval tv, tv1, tv2;
 
     gettimeofday(&tv1, NULL);
-    int i; 
+    size_t i; 
     int sleep_counter = 0;
-    for (i=0; i < size; ++i) {
+    for (i=0; i < blocks; ++i) {
         if (sleep > 0 && interval > 0) {
             if (sleep_counter == interval) {
                 usleep(sleep);
@@ -65,17 +65,14 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t size, int
             }
         }
 
-        //long randblock = random() % count;
-        //off_t offset = randblock * BLOCKSIZE;
         if (random_type) {
             off_t offset = offsets[i] * blocksize;
             long rl = lseek(fd, offset, SEEK_SET);
-            if (rl < 0)// rv*BLOCKSIZE)
+            if (rl < 0)
                 perror("lseek");
         }
 
         ssize_t r = iocall(iotype, fd, buf, blocksize);
-        //printf("%ld\n", r);
         if (r != blocksize) {
             printf("%s returned: %lu, expected: %d\n", iotype==TYPE_READ ? "read" : "write", r, blocksize);
         }
@@ -84,9 +81,7 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t size, int
     gettimeofday(&tv2, NULL);
     timersub(&tv2, &tv1, &tv);
 
-    printf("%lu secs %lu usecs (%lf MB/s)\n", tv.tv_sec, tv.tv_usec, ((double)size*blocksize/((double) tv.tv_sec + (double)tv.tv_usec/1000000)/(1024*1024)));
-
-
+    printf("%lu secs %lu usecs (%lf MB/s)\n", tv.tv_sec, tv.tv_usec, ((double)blocks*blocksize/((double) tv.tv_sec + (double)tv.tv_usec/1000000)/(1024*1024)));
 }
 
 int main(int argc, char **argv)
@@ -94,7 +89,7 @@ int main(int argc, char **argv)
     int iotype;
     int random_type;
     int fd;
-    size_t size;
+    size_t blocks;
     int blocksize;
     int sleep;
     int interval;
@@ -111,15 +106,15 @@ int main(int argc, char **argv)
     if (args.randread || args.randwrite)
         random_type = 1;
 
-    size = atol(args.size);
+    blocks = atol(args.blocks);
     blocksize = atoi(args.blocksize);
     interval = atoi(args.interval);
     sleep = atoi(args.sleep);
 
-    buf = (char *)malloc(size*blocksize);
+    buf = (char *)malloc(blocks*blocksize);
     printf( "%lu %s operations (%d each) from %s.\n"
             "Sleeping %d every %d blocks. %s caches.\n", 
-            size, argv[1], blocksize, args.file, sleep, interval, args.clear ? "Clear" : "Do not clear" );
+            blocks, argv[1], blocksize, args.file, sleep, interval, args.clear ? "Clear" : "Do not clear" );
 
     if (args.clear)
         system("sync; echo 3 > /proc/sys/vm/drop_caches");
@@ -134,12 +129,13 @@ int main(int argc, char **argv)
     srandom(time(NULL));
 
     if (random_type)
-        offsets = generate_offsets(0, size-1);
+        offsets = generate_offsets(0, blocks-1);
 
-    do_io(fd, iotype, random_type, offsets, size, blocksize, buf, sleep, interval);
+    do_io(fd, iotype, random_type, offsets, blocks, blocksize, buf, sleep, interval);
 
     if (random_type)
         free_offsets(offsets);
+
     free(buf);
     close(fd);
     return 0;
