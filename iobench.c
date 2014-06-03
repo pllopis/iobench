@@ -116,9 +116,6 @@ int main(int argc, char **argv)
             "Sleeping %d every %d blocks. %s caches.\n", 
             blocks, argv[1], blocksize, args.file, sleep, interval, args.clear ? "Clear" : "Do not clear" );
 
-    if (args.clear)
-        system("sync; echo 3 > /proc/sys/vm/drop_caches");
-
     fd = open(args.file, O_RDWR);
     if (fd < 0) {
         perror("opening file");
@@ -126,10 +123,16 @@ int main(int argc, char **argv)
     }
 
     lseek(fd, 0, SEEK_SET);
-    srandom(time(NULL));
 
-    if (random_type)
+    if (args.clear) {
+        fdatasync(fd);
+        posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    }
+
+    if (random_type) {
+        srandom(time(NULL));
         offsets = generate_offsets(0, blocks-1);
+    }
 
     do_io(fd, iotype, random_type, offsets, blocks, blocksize, buf, sleep, interval);
 
