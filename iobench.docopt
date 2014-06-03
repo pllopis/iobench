@@ -3,10 +3,11 @@ iobench. Very simple, generic and powerful POSIX I/O benchmark
 Usage:
     iobench (-h | --help)
     iobench (-V | --version)
-    iobench (read|randread|write|randwrite) <file> --size=<io_size> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear]
+    iobench (read|randread|write|randwrite) --file=<file> --size=<io_size> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear]
 
 Options:
     -h --help                       Show help.
+    -f --file=<file>                Target file.
     -s --size=<size>                Process this many blocks.
     -b --blocksize=<blocksize>      I/O block size in bytes. [default: 4096]
     -i --interval=<interval>        Sleep every interval of this many blocks. Use 0 to disable. Useful for limiting IOPS [default: 0]
