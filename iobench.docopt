@@ -4,11 +4,13 @@ Usage:
     iobench (-h | --help)
     iobench (-V | --version)
     iobench (read|randread|write|randwrite) --file=<file> --blocks=<num_blocks> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear]
+    iobench (read|randread|write|randwrite) --file=<file> --size=<size> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear]
 
 Options:
     -h --help                       Show help.
     -f --file=<file>                Target file.
-    -s --size=<size>                Process this many blocks.
+    -n --blocks=<num_blocks>        Process this many blocks.
+    -s --size=<size>                Process this many blocks (size is rounded up to nearest blocksize). Takes precedence over --blocks.
     -b --blocksize=<blocksize>      I/O block size in bytes. [default: 4096]
     -i --interval=<interval>        Sleep every interval of this many blocks. Use 0 to disable. Useful for limiting IOPS [default: 0]
     -S --sleep=<sleep>              When sleeping, sleep for this many usecs. [default: 0]

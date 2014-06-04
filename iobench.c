@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -78,6 +79,10 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, i
         }
         sleep_counter++;
     }
+
+    if (iotype == TYPE_WRITE)
+        fsync(fd);
+
     gettimeofday(&tv2, NULL);
     timersub(&tv2, &tv1, &tv);
 
@@ -106,12 +111,18 @@ int main(int argc, char **argv)
     if (args.randread || args.randwrite)
         random_type = 1;
 
-    blocks = atol(args.blocks);
     blocksize = atoi(args.blocksize);
     interval = atoi(args.interval);
     sleep = atoi(args.sleep);
 
+    if (args.size) {
+        blocks = (int)ceil((double)atoi(args.size) / blocksize); 
+    } else {
+        blocks = atol(args.blocks);
+    }
+
     buf = (char *)malloc(blocks*blocksize);
+
     printf( "%lu %s operations (%d each) from %s.\n"
             "Sleeping %d every %d blocks. %s caches.\n", 
             blocks, argv[1], blocksize, args.file, sleep, interval, args.clear ? "Clear" : "Do not clear" );

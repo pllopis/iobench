@@ -1,12 +1,13 @@
 CC = gcc
 CFLAGS = -g
-LDFLAGS =
+LDFLAGS = -lm
 BINS = iobench
 DOCOPT = python ../docopt.c/docopt_c.py
 
 all: $(BINS)
 
 iobench: iobench.o 
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 iobench.o: iobench.c docopt.c
 
