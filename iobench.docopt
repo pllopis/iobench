@@ -3,8 +3,8 @@ iobench. Very simple, generic and powerful POSIX I/O benchmark
 Usage:
     iobench (-h | --help)
     iobench (-V | --version)
-    iobench (read|randread|write|randwrite) --file=<file> --blocks=<num_blocks> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear]
-    iobench (read|randread|write|randwrite) --file=<file> --size=<size> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear]
+    iobench (read|randread|write|randwrite) --file=<file> --blocks=<num_blocks> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear] [--repeat=<num_repeat>]
+    iobench (read|randread|write|randwrite) --file=<file> --size=<size> [--blocksize=<blocksize>] [--interval=<interval>] [--sleep=<sleep>] [--verbose] [--clear] [--repeat=<num_repeat>]
 
 Options:
     -h --help                       Show help.
@@ -12,9 +12,10 @@ Options:
     -n --blocks=<num_blocks>        Process this many blocks.
     -s --size=<size>                Process this many blocks (size is rounded up to nearest blocksize). Takes precedence over --blocks.
     -b --blocksize=<blocksize>      I/O block size in bytes. [default: 4096]
-    -i --interval=<interval>        Sleep every interval of this many blocks. Use 0 to disable. Useful for limiting IOPS [default: 0]
+    -i --interval=<interval>        Sleep every interval of this many blocks. Use 0 to disable. Useful for limiting IOPS. [default: 0]
     -S --sleep=<sleep>              When sleeping, sleep for this many usecs. [default: 0]
     -V --version                    Show version information.
     -v --verbose                    Be verbose.
     -c --clear                      Clear caches before starting I/O.
+    -r --repeat=<num_repeat>        Repeat the experiment this number of times, including the --clear. [default: 1]
 

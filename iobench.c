@@ -51,6 +51,35 @@ inline void free_offsets(off_t *offsets)
     free(offsets);
 }
 
+size_t parse_size(char *size_str)
+{
+    size_t size;
+    int len = strlen(size_str);
+    int factor = 1;
+    
+    switch(size_str[len-1]) {
+    case 'k':
+    case 'K':
+        factor=1024;
+        break;
+    case 'm':
+    case 'M':
+        factor=1024*1024;
+        break;
+    case 'g':
+    case 'G':
+        factor=1024*1024*1024;
+        break;
+    default:
+        factor=1;
+    }
+
+    if (factor != 1)
+        size_str[len-1] = '\0';
+
+    return atoll(size_str) * factor;
+}
+
 void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, int blocksize, char *buf, int sleep, int interval)
 {
     struct timeval tv, tv1, tv2;
@@ -80,8 +109,9 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, i
         sleep_counter++;
     }
 
-    if (iotype == TYPE_WRITE)
+    if (iotype == TYPE_WRITE) {
         fsync(fd);
+    }
 
     gettimeofday(&tv2, NULL);
     timersub(&tv2, &tv1, &tv);
@@ -91,6 +121,7 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, i
 
 int main(int argc, char **argv)
 {
+    int i;
     int iotype;
     int random_type;
     int fd;
@@ -98,6 +129,7 @@ int main(int argc, char **argv)
     int blocksize;
     int sleep;
     int interval;
+    int repeat;
     off_t *offsets;
     char *buf;
 
@@ -111,21 +143,24 @@ int main(int argc, char **argv)
     if (args.randread || args.randwrite)
         random_type = 1;
 
-    blocksize = atoi(args.blocksize);
+    blocksize = parse_size(args.blocksize);
     interval = atoi(args.interval);
     sleep = atoi(args.sleep);
+    repeat = atoi(args.repeat);
 
     if (args.size) {
-        blocks = (int)ceil((double)atoi(args.size) / blocksize); 
+        blocks = (int)ceil((double)parse_size(args.size) / blocksize); 
     } else {
-        blocks = atol(args.blocks);
+        blocks = parse_size(args.blocks);
     }
 
     buf = (char *)malloc(blocks*blocksize);
 
     printf( "%lu %s operations (%d each) from %s.\n"
-            "Sleeping %d every %d blocks. %s caches.\n", 
-            blocks, argv[1], blocksize, args.file, sleep, interval, args.clear ? "Clear" : "Do not clear" );
+            "Sleeping %d every %d blocks. %s caches. %s I/O. Repeat: %d\n", 
+            blocks, argv[1], blocksize, args.file, sleep, interval, 
+            args.clear ? "Clear" : "Do not clear", random_type ? "Random" : "Sequential",
+            repeat);
 
     fd = open(args.file, O_RDWR);
     if (fd < 0) {
@@ -135,23 +170,24 @@ int main(int argc, char **argv)
 
     lseek(fd, 0, SEEK_SET);
 
-    if (args.clear) {
-        fdatasync(fd);
-        posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+    for (i=0; i<repeat; i++) {
+        if (random_type) {
+            srandom(time(NULL));
+            offsets = generate_offsets(0, blocks-1);
+        }
+
+        if (args.clear) {
+            fdatasync(fd);
+            posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+        }
+
+        do_io(fd, iotype, random_type, offsets, blocks, blocksize, buf, sleep, interval);
+
+        if (random_type)
+            free_offsets(offsets);
     }
-
-    if (random_type) {
-        srandom(time(NULL));
-        offsets = generate_offsets(0, blocks-1);
-    }
-
-    do_io(fd, iotype, random_type, offsets, blocks, blocksize, buf, sleep, interval);
-
-    if (random_type)
-        free_offsets(offsets);
 
     free(buf);
     close(fd);
     return 0;
-
 }
