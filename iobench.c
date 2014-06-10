@@ -134,6 +134,23 @@ int main(int argc, char **argv)
     char *buf;
 
     DocoptArgs args = docopt(argc, argv, 1, VERSION);
+    if (args.verbose) {
+        printf("Commands\n");
+        printf("read: %d\n", args.read);
+        printf("write: %d\n", args.write);
+        printf("randread: %d\n", args.randread);
+        printf("randwrite: %d\n", args.randwrite);
+        printf("Arguments\n");
+        printf("file: %s\n", args.file);
+        printf("size: %s\n", args.size);
+        printf("blocks: %s\n", args.blocks);
+        printf("blocksize: %s\n", args.blocksize);
+        printf("interval: %s\n", args.interval);
+        printf("clear: %d\n", args.clear);
+        printf("verbose: %d\n", args.verbose);
+        printf("repeat: %s\n", args.repeat);
+        printf("sleep: %s\n", args.sleep);
+    }
 
     if (args.read || args.randread) 
         iotype = TYPE_READ;
@@ -142,6 +159,8 @@ int main(int argc, char **argv)
 
     if (args.randread || args.randwrite)
         random_type = 1;
+    else
+        random_type = 0;
 
     blocksize = parse_size(args.blocksize);
     interval = atoi(args.interval);
