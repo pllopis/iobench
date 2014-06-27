@@ -80,7 +80,7 @@ size_t parse_size(char *size_str)
     return atoll(size_str) * factor;
 }
 
-void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, int blocksize, char *buf, int sleep, int interval)
+int do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, int blocksize, char *buf, int sleep, int interval, int verbose)
 {
     struct timeval tv, tv1, tv2;
 
@@ -98,13 +98,17 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, i
         if (random_type) {
             off_t offset = offsets[i] * blocksize;
             long rl = lseek(fd, offset, SEEK_SET);
-            if (rl < 0)
+            if (rl < 0) {
                 perror("lseek");
+                return 1;
+            }
         }
 
         ssize_t r = iocall(iotype, fd, buf, blocksize);
         if (r != blocksize) {
-            printf("%s returned: %lu, expected: %d\n", iotype==TYPE_READ ? "read" : "write", r, blocksize);
+            perror("ioerror");
+            printf("%s returned: %lu, expected: %d, buf: %p\n", iotype==TYPE_READ ? "read" : "write", r, blocksize, buf);
+            return 1;
         }
         sleep_counter++;
     }
@@ -117,6 +121,7 @@ void do_io(int fd, int iotype, int random_type, off_t *offsets, size_t blocks, i
     timersub(&tv2, &tv1, &tv);
 
     printf("%lu secs %lu usecs (%lf MB/s)\n", tv.tv_sec, tv.tv_usec, ((double)blocks*blocksize/((double) tv.tv_sec + (double)tv.tv_usec/1000000)/(1024*1024)));
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -173,7 +178,7 @@ int main(int argc, char **argv)
         blocks = parse_size(args.blocks);
     }
 
-    buf = (char *)malloc(blocks*blocksize);
+    buf = (char *)malloc(blocksize);
 
     printf( "%lu %s operations (%d each) from %s.\n"
             "Sleeping %d every %d blocks. %s caches. %s I/O. Repeat: %d\n", 
@@ -187,9 +192,9 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    lseek(fd, 0, SEEK_SET);
-
     for (i=0; i<repeat; i++) {
+        lseek(fd, 0, SEEK_SET);
+
         if (random_type) {
             srandom(time(NULL));
             offsets = generate_offsets(0, blocks-1);
@@ -200,7 +205,11 @@ int main(int argc, char **argv)
             posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
         }
 
-        do_io(fd, iotype, random_type, offsets, blocks, blocksize, buf, sleep, interval);
+        if (do_io(fd, iotype, random_type, offsets, blocks, blocksize, buf, sleep, interval, args.verbose)) {
+            if (random_type)
+                free_offsets(offsets);
+            break;
+        }
 
         if (random_type)
             free_offsets(offsets);
